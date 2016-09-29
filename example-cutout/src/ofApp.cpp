@@ -43,18 +43,18 @@ void ofApp::draw() {
 		// add boundary face points
 		float scaleFactor = 1.6;
 		ofPolyline outline = imgTracker.getImageFeature(ofxFaceTracker::FACE_OUTLINE);
-		ofVec2f position = imgTracker.getPosition();
+		glm::vec2 position = imgTracker.getPosition();
 		for(int i = 0; i < outline.size(); i++) {
-			ofVec2f point((outline[i] - position) * scaleFactor + position);
-			delaunay.addPoint(point);
+			glm::vec2 point((outline[i] - position) * scaleFactor + position);
+			delaunay.addPoint(glm::vec3(point.x, point.y, 0));
 		}
 
 		// add the image corners
 		int w = img.getWidth(), h = img.getHeight();
-		delaunay.addPoint(ofVec2f(0, 0));
-		delaunay.addPoint(ofVec2f(w, 0));
-		delaunay.addPoint(ofVec2f(w, h));
-		delaunay.addPoint(ofVec2f(0, h));
+		delaunay.addPoint(glm::vec3(0, 0, 0));
+		delaunay.addPoint(glm::vec3(w, 0, 0));
+		delaunay.addPoint(glm::vec3(w, h, 0));
+		delaunay.addPoint(glm::vec3(0, h, 0));
 		
 		delaunay.triangulate();
 		ofMesh triangulated = delaunay.triangleMesh;
@@ -68,7 +68,7 @@ void ofApp::draw() {
 			float minDistance = 0;
 			int best = 0;
 			for(int j = 0; j < triangulated.getNumVertices(); j++) {
-				float distance = triangulated.getVertex(j).distance(faceMesh.getVertex(i));
+				float distance = glm::distance(triangulated.getVertex(j), faceMesh.getVertex(i));
 				if(j == 0 || distance < minDistance) {
 					minDistance = distance;
 					best = j;
@@ -89,8 +89,9 @@ void ofApp::draw() {
 		finalMesh.setMode(OF_PRIMITIVE_TRIANGLES);	
 		for(int i = 0; i < delaunayToFinal.size(); i++) {
 			int index = finalToDelaunay[i];
-			finalMesh.addVertex(triangulated.getVertex(index));
-			finalMesh.addTexCoord(triangulated.getVertex(index));
+			glm::vec3 vrtx3 = triangulated.getVertex(index);
+			finalMesh.addVertex(vrtx3);
+			finalMesh.addTexCoord(glm::vec2(vrtx3.x, vrtx3.y));
 		}
 		for(int i = 0; i < triangulated.getNumIndices(); i++) {
 			finalMesh.addIndex(delaunayToFinal[triangulated.getIndex(i)]);
@@ -98,18 +99,19 @@ void ofApp::draw() {
 		
 		// modify mesh
 		if(camTracker.getFound()) {
-			ofVec2f imgPosition = imgTracker.getPosition();
-			ofVec2f camPosition = camTracker.getPosition();
+			glm::vec2 imgPosition = imgTracker.getPosition();
+			glm::vec2 camPosition = camTracker.getPosition();
 			float imgScale = imgTracker.getScale();
 			float camScale = camTracker.getScale();
 			ofMesh reference = camTracker.getImageMesh();
 			for(int i = 0; i < reference.getNumVertices(); i++) {
-				ofVec2f point = reference.getVertices()[i];
+				glm::vec3 point3 = reference.getVertices()[i];
+				glm::vec2 point = glm::vec2(point3.x, point3.y);
 				point -= camPosition;
 				point /= camScale;
 				point *= imgScale;
 				point += imgPosition;
-				finalMesh.getVertices()[i] = point;
+				finalMesh.getVertices()[i] = glm::vec3(point.x, point.y, 0);
 			}
 		}
 		 
